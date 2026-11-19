@@ -1,0 +1,17 @@
+name: promotion-policy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  promotion-policy:
+    name: promotion-policy
+    uses: OWNER/platform-workflows/.github/workflows/promotion-policy.yml@v1
+    with:
+      tenant: pse
+      platform_repository: OWNER/platform-workflows
+      platform_ref: v1

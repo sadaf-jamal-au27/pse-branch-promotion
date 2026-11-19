@@ -1,0 +1,6 @@
+repository,tenant,caller_style
+# Pilot repository. Workflows run in place, so check names are the job names.
+sadaf-jamal-au27/pse-branch-promotion,pse,local
+# Remaining tenants call the reusable workflows. One line per repository.
+# Sixteen lines replace forty-eight ruleset screens.
+OWNER/tenant-acme,acme,reusable

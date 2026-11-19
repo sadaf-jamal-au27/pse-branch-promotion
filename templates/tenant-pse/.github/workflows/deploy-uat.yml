@@ -1,0 +1,20 @@
+name: deploy-uat
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - uat
+      - pse-uat
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-uat:
+    name: deploy-uat
+    uses: OWNER/platform-workflows/.github/workflows/deploy-uat.yml@v1
+    with:
+      tenant: pse
+      platform_repository: OWNER/platform-workflows
+      platform_ref: v1

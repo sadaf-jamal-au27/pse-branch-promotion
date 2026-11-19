@@ -1,0 +1,29 @@
+name: policy-tests
+
+# Platform test suite. This job is not a promotion gate. The rulesets do not
+# require it. It keeps the route matrix honest on every pull request.
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  policy-tests:
+    name: policy-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run the promotion test suite
+        run: python -m unittest discover -s tests -v

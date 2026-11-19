@@ -1,0 +1,20 @@
+name: promote-prod
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - prod
+      - pse
+
+permissions:
+  contents: read
+
+jobs:
+  promote-prod:
+    name: promote-prod
+    uses: OWNER/platform-workflows/.github/workflows/promote-prod.yml@v1
+    with:
+      tenant: pse
+      platform_repository: OWNER/platform-workflows
+      platform_ref: v1

@@ -1,0 +1,57 @@
+name: promotion-policy
+
+# Required check on every pull request. Exit 1 blocks the merge once the
+# ruleset is active. This file is also the reusable workflow tenants call.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_call:
+    inputs:
+      tenant:
+        description: Tenant slug. The pilot repository uses pse.
+        required: false
+        type: string
+        default: pse
+      platform_repository:
+        description: Repository that holds the policy package.
+        required: false
+        type: string
+        default: ""
+      platform_ref:
+        description: Pin of the policy package. Tenant callers pass a release tag.
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: promotion-policy-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  promotion-policy:
+    name: promotion-policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out policy package
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.platform_repository || github.repository }}
+          ref: ${{ inputs.platform_ref || github.sha }}
+          path: platform
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Enforce the official promotion route
+        working-directory: platform
+        env:
+          TENANT: ${{ inputs.tenant || 'pse' }}
+          SOURCE: ${{ github.head_ref }}
+          TARGET: ${{ github.base_ref }}
+        run: python -m policy.cli --tenant "$TENANT" --source "$SOURCE" --target "$TARGET"

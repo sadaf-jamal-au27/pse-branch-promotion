@@ -1,0 +1,77 @@
+name: deploy-uat
+
+# Runs only for pull requests that target uat or <tenant>-uat. A feature
+# branch fails the policy step with exit 1. An allowed route deploys the
+# digest already published from main and does not compile.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - uat
+      - pse-uat
+  workflow_call:
+    inputs:
+      tenant:
+        description: Tenant slug. The pilot repository uses pse.
+        required: false
+        type: string
+        default: pse
+      platform_repository:
+        description: Repository that holds the policy package.
+        required: false
+        type: string
+        default: ""
+      platform_ref:
+        description: Pin of the policy package. Tenant callers pass a release tag.
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-uat-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-uat:
+    name: deploy-uat
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out policy package
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.platform_repository || github.repository }}
+          ref: ${{ inputs.platform_ref || github.sha }}
+          path: platform
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Enforce the official promotion route
+        working-directory: platform
+        env:
+          TENANT: ${{ inputs.tenant || 'pse' }}
+          SOURCE: ${{ github.head_ref }}
+          TARGET: ${{ github.base_ref }}
+        run: python -m policy.cli --tenant "$TENANT" --source "$SOURCE" --target "$TARGET"
+
+      - name: Deploy the existing artifact to UAT
+        working-directory: platform
+        env:
+          TENANT: ${{ inputs.tenant || 'pse' }}
+          SOURCE: ${{ github.head_ref }}
+          TARGET: ${{ github.base_ref }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: python -m policy.release --stage uat --tenant "$TENANT" --source "$SOURCE" --target "$TARGET" --sha "$SHA" --output ../dist/uat-release.json
+
+      - name: Upload the UAT release record
+        uses: actions/upload-artifact@v4
+        with:
+          name: uat-release-${{ github.event.pull_request.head.sha }}
+          path: dist/uat-release.json
+          if-no-files-found: error
